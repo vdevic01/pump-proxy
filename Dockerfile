@@ -15,7 +15,7 @@ COPY . .
 RUN go build -o pump-proxy .
 
 # ----- Runtime stage -----
-FROM debian:bullseye-slim
+FROM ubuntu:22.04
 
 # Create non-root user
 RUN useradd -m appuser
