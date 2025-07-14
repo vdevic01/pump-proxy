@@ -62,7 +62,7 @@ func Load(configFileName string, into interface{}) error {
 	v := viper.New()
 	v.SetConfigFile(configFileName)
 	v.SetConfigType("toml")
-	v.SetEnvPrefix("PUMP_PROXY")
+	v.SetEnvPrefix("PUMP_PROXY_APP")
 	v.AutomaticEnv()
 	v.SetTypeByDefaultValue(true)
 
