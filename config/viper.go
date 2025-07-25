@@ -8,16 +8,19 @@ import (
 )
 
 type ProxyConfigViper struct {
-	JWTSecret               string             `cfg:"jwt_secret"`
-	TargetURL               string             `cfg:"target_url"`
-	EncryptionKey           string             `cfg:"encryption_key"`
-	Port                    int16              `cfg:"port"`
-	Host                    string             `cfg:"host"`
-	TokenDuration           uint               `cfg:"token_duration"`
-	ServiceAccountNamespace string             `cfg:"service_account_namespace"`
-	Oidc                    OidcOptionsViper   `cfg:"oidc"`
-	Cookie                  CookieOptionsViper `cfg:"cookie"`
-	GroupMapping            map[string]string  `cfg:"group_mapping"`
+	JWTSecret               string              `cfg:"jwt_secret"`
+	TargetURL               string              `cfg:"target_url"`
+	EncryptionKey           string              `cfg:"encryption_key"`
+	Port                    int16               `cfg:"port"`
+	Host                    string              `cfg:"host"`
+	TokenDuration           uint                `cfg:"token_duration"`
+	ServiceAccountNamespace string              `cfg:"service_account_namespace"`
+	Oidc                    *OidcOptionsViper   `cfg:"oidc"`
+	Saml                    *SAMLOptionsViper   `cfg:"saml"`
+	Cookie                  *CookieOptionsViper `cfg:"cookie"`
+	Acl                     map[string]string   `cfg:"acl"`
+	AuthType                string              `cfg:"auth_type"`
+	RunInDebug              bool                `cfg:"run_in_debug"`
 }
 
 type OidcOptionsViper struct {
@@ -33,29 +36,13 @@ type CookieOptionsViper struct {
 	SameSite string `cfg:"same_site"`
 }
 
-func NewProxyConfigViper() *ProxyConfigViper {
-	return &ProxyConfigViper{
-		JWTSecret:     "placeholder",
-		TargetURL:     "https://placeholder.com",
-		EncryptionKey: "11111111111111111111111111111111",
-		Port:          8080,
-		Host:          "localhost",
-		TokenDuration: 3600,
-		Oidc: OidcOptionsViper{
-			OidcURL:          "https://login.microsoftonline.com/placeholder/v2.0",
-			OidcClientID:     "placeholder",
-			OidcClientSecret: "placeholder",
-			OidcRedirectURL:  "http://localhost:8080/pumproxy/callback",
-		},
-		Cookie: CookieOptionsViper{
-			Secure:   false,
-			HttpOnly: true,
-			SameSite: "Strict",
-		},
-		GroupMapping: map[string]string{
-			"placeholder": "placeholder",
-		},
-	}
+type SAMLOptionsViper struct {
+	IdpMetadataURL    string `cfg:"idp_metadata_url"`
+	EntityID          string `cfg:"entity_id"`
+	UserGroupAttrName string `cfg:"user_group_attr_name"`
+	UserIDAttrName    string `cfg:"user_id_attr_name"`
+	CertPath          string `cfg:"cert_path"`
+	KeyPath           string `cfg:"key_path"`
 }
 
 func Load(configFileName string, into interface{}) error {
@@ -65,6 +52,8 @@ func Load(configFileName string, into interface{}) error {
 	v.SetEnvPrefix("PUMP_PROXY_APP")
 	v.AutomaticEnv()
 	v.SetTypeByDefaultValue(true)
+
+	v.SetDefault("run_in_debug", false)
 
 	if configFileName != "" {
 		err := v.ReadInConfig()

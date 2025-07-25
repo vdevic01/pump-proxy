@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"PumpProxy/config"
 	"context"
 	"fmt"
 
@@ -14,19 +15,25 @@ type KubeClient struct {
 	clientset *kubernetes.Clientset
 }
 
-func NewKubeClient() *KubeClient {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(fmt.Errorf("failed to get in-cluster config: %w", err))
-	}
+func NewKubeClient(proxyConfig *config.ProxyConfig) *KubeClient {
+	if proxyConfig.RunInDebug {
+		return &KubeClient{
+			clientset: nil,
+		}
+	} else {
+		kubeConfig, err := rest.InClusterConfig()
+		if err != nil {
+			panic(fmt.Errorf("failed to get in-cluster config: %w", err))
+		}
 
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(fmt.Errorf("failed to create clientset: %w", err))
-	}
+		clientset, err := kubernetes.NewForConfig(kubeConfig)
+		if err != nil {
+			panic(fmt.Errorf("failed to create clientset: %w", err))
+		}
 
-	return &KubeClient{
-		clientset: clientset,
+		return &KubeClient{
+			clientset: clientset,
+		}
 	}
 }
 

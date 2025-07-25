@@ -1,11 +1,15 @@
 package logging
 
-import (
-	"fmt"
-	"time"
-)
+import "log"
 
 func LogRequest(rMethod string, rURL string, status int) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	fmt.Printf("%s %s %s %d\n", timestamp, rMethod, rURL, status)
+	log.Printf("INFO: %s %s %d", rMethod, rURL, status)
+}
+
+func LogInfo(message string) {
+	log.Printf("INFO: %s", message)
+}
+
+func LogError(err error) {
+	log.Printf("ERROR: %v", err)
 }

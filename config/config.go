@@ -1,11 +1,21 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
+)
+
+type AuthType string
+
+const (
+	AuthSAML AuthType = "saml"
+	AuthOIDC AuthType = "oidc"
 )
 
 type ProxyConfig struct {
@@ -16,9 +26,13 @@ type ProxyConfig struct {
 	Host                    string
 	TokenDuration           time.Duration
 	ServiceAccountNamespace string
-	Oidc                    OidcOptions
-	Cookie                  CookieOptions
-	GroupMapping            map[string]string // Maps OIDC groups to service accounts, each group can map to single service account
+	Oidc                    *OidcOptions
+	Saml                    *SAMLOptions
+	Cookie                  *CookieOptions
+	Acl                     map[string]string // Maps OIDC groups to service accounts, each group can map to single service account
+	AclSignature            string
+	Auth                    AuthType
+	RunInDebug              bool
 }
 
 type OidcOptions struct {
@@ -34,6 +48,15 @@ type CookieOptions struct {
 	SameSite http.SameSite
 }
 
+type SAMLOptions struct {
+	IdpMetadataURL    string
+	EntityID          string
+	UserGroupAttrName string // Can be a group or role of the user
+	UserIDAttrName    string // Can be any attribute that uniquely identifies the user (e.g. email)
+	CertPath          string // Path to the certificate file
+	KeyPath           string // Path to the key file
+}
+
 func NewProxyConfig(viperConfig *ProxyConfigViper) (*ProxyConfig, error) {
 	targetURL, err := url.Parse(viperConfig.TargetURL)
 	if err != nil {
@@ -45,7 +68,12 @@ func NewProxyConfig(viperConfig *ProxyConfigViper) (*ProxyConfig, error) {
 		return nil, err
 	}
 
-	return &ProxyConfig{
+	auth, err := parseAuthType(viperConfig.AuthType)
+	if err != nil {
+		return nil, err
+	}
+
+	output := &ProxyConfig{
 		JWTSecret:               []byte(viperConfig.JWTSecret),
 		TargetURL:               targetURL,
 		EncryptionKey:           []byte(viperConfig.EncryptionKey),
@@ -53,19 +81,35 @@ func NewProxyConfig(viperConfig *ProxyConfigViper) (*ProxyConfig, error) {
 		Host:                    viperConfig.Host,
 		ServiceAccountNamespace: viperConfig.ServiceAccountNamespace,
 		TokenDuration:           time.Duration(viperConfig.TokenDuration) * time.Second,
-		Oidc: OidcOptions{
-			OidcURL:          viperConfig.Oidc.OidcURL,
-			OidcClientID:     viperConfig.Oidc.OidcClientID,
-			OidcClientSecret: viperConfig.Oidc.OidcClientSecret,
-			OidcRedirectURL:  viperConfig.Oidc.OidcRedirectURL,
-		},
-		Cookie: CookieOptions{
+		Cookie: &CookieOptions{
 			Secure:   viperConfig.Cookie.Secure,
 			HttpOnly: viperConfig.Cookie.HttpOnly,
 			SameSite: sameSite,
 		},
-		GroupMapping: viperConfig.GroupMapping,
-	}, nil
+		Acl:          viperConfig.Acl,
+		AclSignature: computeAclHash(viperConfig.Acl),
+		Auth:         auth,
+		RunInDebug:   viperConfig.RunInDebug,
+	}
+	if auth == AuthSAML {
+		output.Saml = &SAMLOptions{
+			IdpMetadataURL:    viperConfig.Saml.IdpMetadataURL,
+			EntityID:          viperConfig.Saml.EntityID,
+			UserGroupAttrName: viperConfig.Saml.UserGroupAttrName,
+			UserIDAttrName:    viperConfig.Saml.UserIDAttrName,
+			CertPath:          viperConfig.Saml.CertPath,
+			KeyPath:           viperConfig.Saml.KeyPath,
+		}
+	} else {
+		output.Oidc = &OidcOptions{
+			OidcURL:          viperConfig.Oidc.OidcURL,
+			OidcClientID:     viperConfig.Oidc.OidcClientID,
+			OidcClientSecret: viperConfig.Oidc.OidcClientSecret,
+			OidcRedirectURL:  viperConfig.Oidc.OidcRedirectURL,
+		}
+	}
+
+	return output, nil
 }
 
 func parseSameSite(mode string) (http.SameSite, error) {
@@ -81,4 +125,31 @@ func parseSameSite(mode string) (http.SameSite, error) {
 	default:
 		return http.SameSiteDefaultMode, fmt.Errorf("invalid SameSite value: %s", mode)
 	}
+}
+
+func parseAuthType(auth string) (AuthType, error) {
+	switch auth {
+	case string(AuthSAML):
+		return AuthSAML, nil
+	case string(AuthOIDC):
+		return AuthOIDC, nil
+	default:
+		return "", fmt.Errorf("invalid AuthType: %s", auth)
+	}
+}
+
+func computeAclHash(acl map[string]string) string {
+	keys := make([]string, 0, len(acl))
+	for k := range acl {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	data := ""
+	for _, k := range keys {
+		data += k + "=" + acl[k] + ";"
+	}
+
+	h := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(h[:])
 }
