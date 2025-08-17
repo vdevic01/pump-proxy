@@ -7,6 +7,7 @@ import (
 	"PumpProxy/templates"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"time"
@@ -51,14 +52,16 @@ func (h *ProxyHandler) wellKnownHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h *ProxyHandler) defaultHandler(w http.ResponseWriter, r *http.Request) {
 	if !h.isValidRequest(r) {
-		logging.LogRequest(r.Method, r.URL.String(), http.StatusUnauthorized)
 		page, err := templates.ReadSigninPage()
 		if err != nil {
+			logging.LogRequest(r.Method, r.URL.String(), http.StatusInternalServerError)
+			logging.LogError(err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Write(page)
+		logging.LogRequest(r.Method, r.URL.String(), http.StatusUnauthorized)
 		return
 	}
 	logging.LogRequest(r.Method, r.URL.String(), http.StatusOK)
@@ -68,21 +71,25 @@ func (h *ProxyHandler) defaultHandler(w http.ResponseWriter, r *http.Request) {
 func (h *ProxyHandler) isValidRequest(r *http.Request) bool {
 	authToken, err := h.readTokenFromCookies(r)
 	if err != nil {
+		logging.LogError(err)
 		return false
 	}
 	parsedAuthToken, err := h.parseToken(authToken)
 	if err != nil {
+		logging.LogError(err)
 		return false
 	}
 	claims, ok := parsedAuthToken.Claims.(jwt.MapClaims)
 	if !ok {
+		logging.LogError(errors.New("error parsing jwt claims"))
 		return false
 	}
-	if h.isTokenExpired(claims) {
+	if !h.isTokenValid(claims) {
 		return false
 	}
 	saToken, err := h.extractServiceAccountToken(claims)
 	if err != nil {
+		logging.LogError(err)
 		return false
 	}
 	r.Header.Set("Authorization", "Bearer "+saToken)
@@ -92,7 +99,7 @@ func (h *ProxyHandler) isValidRequest(r *http.Request) bool {
 func (h *ProxyHandler) readTokenFromCookies(req *http.Request) (string, error) {
 	cookie, err := req.Cookie("token")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("token cookie not found: %w", err)
 	}
 	return cookie.Value, nil
 }
@@ -123,6 +130,14 @@ func (h *ProxyHandler) isTokenExpired(claims jwt.MapClaims) bool {
 	return true
 }
 
+func (h *ProxyHandler) isAclSignatureValid(claims jwt.MapClaims) bool {
+	return claims["acl_signature"] == h.proxyConfig.AclSignature
+}
+
+func (h *ProxyHandler) isTokenValid(claims jwt.MapClaims) bool {
+	return !h.isTokenExpired(claims) && h.isAclSignatureValid(claims)
+}
+
 func (h *ProxyHandler) extractServiceAccountToken(claims jwt.MapClaims) (string, error) {
 	encodedToken, ok := claims["service_account_token"].(string)
 	if !ok {
@@ -131,12 +146,12 @@ func (h *ProxyHandler) extractServiceAccountToken(claims jwt.MapClaims) (string,
 
 	decodedToken, err := base64.StdEncoding.DecodeString(encodedToken)
 	if err != nil {
-		return "", errors.New("failed to base64 decode service account token")
+		return "", fmt.Errorf("failed to base64 decode service account token: %w", err)
 	}
 
 	decryptedToken, err := security.Decrypt(decodedToken, h.encryptionKey)
 	if err != nil {
-		return "", errors.New("failed to decrypt service account token")
+		return "", fmt.Errorf("failed to decrypt service account token: %w", err)
 	}
 	return decryptedToken, nil
 }
