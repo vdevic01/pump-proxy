@@ -53,7 +53,7 @@ Replace `<target-namespace>` and `<pump-proxy-service-account>` with your actual
 
 ## Configuration
 
-Pump Proxy uses the Viper library for configuration. You can configure Pump Proxy using either a TOML file (recommended for local/dev) or environment variables (recommended for production/secrets). When using environment variables, all keys must be prefixed with `PUMP_PROXY_APP_` (e.g., `PUMP_PROXY_APP_JWT_SECRET`).
+Pump Proxy uses the Viper library for configuration. You can configure Pump Proxy using either a TOML file or environment variables. When using environment variables, all keys must be prefixed with `PUMP_PROXY_APP_` (e.g., `PUMP_PROXY_APP_JWT_SECRET`).
 
 ### How Viper Loads Configuration
 
