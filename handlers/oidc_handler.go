@@ -28,20 +28,20 @@ func NewOIDCHandler(prefix string, config *config.ProxyConfig, saService *saserv
 	proxyConfig := config
 	oidcContext := context.Background()
 
-	provider, err := oidc.NewProvider(oidcContext, proxyConfig.Oidc.OidcURL)
+	provider, err := oidc.NewProvider(oidcContext, proxyConfig.Oidc.IdpURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	oidcConfig := &oidc.Config{
-		ClientID: proxyConfig.Oidc.OidcClientID,
+		ClientID: proxyConfig.Oidc.ClientID,
 	}
 	verifier := provider.Verifier(oidcConfig)
 
 	oauthConfig := oauth2.Config{
-		ClientID:     proxyConfig.Oidc.OidcClientID,
-		ClientSecret: proxyConfig.Oidc.OidcClientSecret,
-		RedirectURL:  proxyConfig.Oidc.OidcRedirectURL,
+		ClientID:     proxyConfig.Oidc.ClientID,
+		ClientSecret: proxyConfig.Oidc.ClientSecret,
+		RedirectURL:  proxyConfig.Oidc.RedirectURL,
 		Scopes:       []string{oidc.ScopeOpenID},
 		Endpoint:     provider.Endpoint(),
 	}

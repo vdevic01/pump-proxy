@@ -36,10 +36,10 @@ type ProxyConfig struct {
 }
 
 type OidcOptions struct {
-	OidcURL          string
-	OidcClientID     string
-	OidcClientSecret string
-	OidcRedirectURL  string
+	IdpURL       string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
 }
 
 type CookieOptions struct {
@@ -57,55 +57,55 @@ type SAMLOptions struct {
 	KeyPath           string // Path to the key file
 }
 
-func NewProxyConfig(viperConfig *ProxyConfigViper) (*ProxyConfig, error) {
-	targetURL, err := url.Parse(viperConfig.TargetURL)
+func NewProxyConfig(configDto *ProxyConfigDto) (*ProxyConfig, error) {
+	targetURL, err := url.Parse(configDto.TargetURL)
 	if err != nil {
 		return nil, err
 	}
 
-	sameSite, err := parseSameSite(viperConfig.Cookie.SameSite)
+	sameSite, err := parseSameSite(configDto.Cookie.SameSite)
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := parseAuthType(viperConfig.AuthType)
+	auth, err := parseAuthType(configDto.AuthType)
 	if err != nil {
 		return nil, err
 	}
 
 	output := &ProxyConfig{
-		JWTSecret:               []byte(viperConfig.JWTSecret),
+		JWTSecret:               []byte(configDto.JWTSecret),
 		TargetURL:               targetURL,
-		EncryptionKey:           []byte(viperConfig.EncryptionKey),
-		Port:                    viperConfig.Port,
-		Host:                    viperConfig.Host,
-		ServiceAccountNamespace: viperConfig.ServiceAccountNamespace,
-		TokenDuration:           time.Duration(viperConfig.TokenDuration) * time.Second,
+		EncryptionKey:           []byte(configDto.EncryptionKey),
+		Port:                    configDto.Port,
+		Host:                    configDto.Host,
+		ServiceAccountNamespace: configDto.ServiceAccountNamespace,
+		TokenDuration:           time.Duration(configDto.TokenDuration) * time.Second,
 		Cookie: &CookieOptions{
-			Secure:   viperConfig.Cookie.Secure,
-			HttpOnly: viperConfig.Cookie.HttpOnly,
+			Secure:   configDto.Cookie.Secure,
+			HttpOnly: configDto.Cookie.HttpOnly,
 			SameSite: sameSite,
 		},
-		Acl:          viperConfig.Acl,
-		AclSignature: computeAclHash(viperConfig.Acl),
+		Acl:          configDto.Acl,
+		AclSignature: computeAclHash(configDto.Acl),
 		Auth:         auth,
-		RunInDebug:   viperConfig.RunInDebug,
+		RunInDebug:   configDto.RunInDebug,
 	}
 	if auth == AuthSAML {
 		output.Saml = &SAMLOptions{
-			IdpMetadataURL:    viperConfig.Saml.IdpMetadataURL,
-			EntityID:          viperConfig.Saml.EntityID,
-			UserGroupAttrName: viperConfig.Saml.UserGroupAttrName,
-			UserIDAttrName:    viperConfig.Saml.UserIDAttrName,
-			CertPath:          viperConfig.Saml.CertPath,
-			KeyPath:           viperConfig.Saml.KeyPath,
+			IdpMetadataURL:    configDto.Saml.IdpMetadataURL,
+			EntityID:          configDto.Saml.EntityID,
+			UserGroupAttrName: configDto.Saml.UserGroupAttrName,
+			UserIDAttrName:    configDto.Saml.UserIDAttrName,
+			CertPath:          configDto.Saml.CertPath,
+			KeyPath:           configDto.Saml.KeyPath,
 		}
 	} else {
 		output.Oidc = &OidcOptions{
-			OidcURL:          viperConfig.Oidc.OidcURL,
-			OidcClientID:     viperConfig.Oidc.OidcClientID,
-			OidcClientSecret: viperConfig.Oidc.OidcClientSecret,
-			OidcRedirectURL:  viperConfig.Oidc.OidcRedirectURL,
+			IdpURL:       configDto.Oidc.IdpURL,
+			ClientID:     configDto.Oidc.ClientID,
+			ClientSecret: configDto.Oidc.ClientSecret,
+			RedirectURL:  configDto.Oidc.RedirectURL,
 		}
 	}
 

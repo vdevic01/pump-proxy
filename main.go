@@ -81,8 +81,7 @@ func (ws *WebServer) ServeHTTP() {
 func main() {
 	var configFilePath = flag.String("config-file", "default_config.toml", "Path to config file")
 	flag.Parse()
-
-	configViper := &config.ProxyConfigViper{}
+	configViper := &config.ProxyConfigDto{}
 	err := config.Load(*configFilePath, configViper)
 	if err != nil {
 		panic(fmt.Errorf("error parsing configuration: %w", err))
