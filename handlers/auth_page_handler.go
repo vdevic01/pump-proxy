@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"PumpProxy/config"
+	"PumpProxy/file-system/templates"
 	"PumpProxy/logging"
-	"PumpProxy/templates"
 	"net/http"
 )
 

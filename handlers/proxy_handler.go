@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"PumpProxy/config"
+	"PumpProxy/file-system/templates"
 	"PumpProxy/logging"
 	"PumpProxy/security"
-	"PumpProxy/templates"
 	"encoding/base64"
 	"errors"
 	"fmt"
