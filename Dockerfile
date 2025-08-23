@@ -17,14 +17,21 @@ RUN go build -o pump-proxy .
 # ----- Runtime stage -----
 FROM ubuntu:22.04
 
+# Install CA certificates
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
 RUN useradd -m appuser
 
 # Copy binary from build stage
-COPY --from=builder /app/pump-proxy /usr/local/bin/pump-proxy
+COPY --from=builder /app/pump-proxy /app/pump-proxy
+COPY --from=builder /app/templates /app/templates
+COPY --from=builder /app/static /app/static
+
+WORKDIR /app
 
 # Use non-root user
 USER appuser
 
 # Set entrypoint
-ENTRYPOINT ["/usr/local/bin/pump-proxy"]
+ENTRYPOINT ["/app/pump-proxy"]
