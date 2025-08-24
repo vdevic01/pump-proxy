@@ -37,7 +37,7 @@ func NewSAMLHandler(prefix string, config *config.ProxyConfig, saService *saserv
 		log.Fatal("Failed to load IdP metadata:", err)
 	}
 
-	rootURL, _ := url.Parse(fmt.Sprintf("http://%s:%d", config.Host, config.Port))
+	rootURL, _ := url.Parse(fmt.Sprintf("http://localhost:%d", config.Port))
 
 	middleware, err := samlsp.New(samlsp.Options{
 		URL:               *rootURL,
