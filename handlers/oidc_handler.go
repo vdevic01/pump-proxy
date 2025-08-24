@@ -7,6 +7,7 @@ import (
 	saservice "PumpProxy/services/sa-service"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -41,7 +42,7 @@ func NewOIDCHandler(prefix string, config *config.ProxyConfig, saService *saserv
 	oauthConfig := oauth2.Config{
 		ClientID:     proxyConfig.Oidc.ClientID,
 		ClientSecret: proxyConfig.Oidc.ClientSecret,
-		RedirectURL:  proxyConfig.Oidc.RedirectURL,
+		RedirectURL:  fmt.Sprintf("%s/pumpproxy/callback", proxyConfig.Oidc.RedirectURL),
 		Scopes:       []string{oidc.ScopeOpenID},
 		Endpoint:     provider.Endpoint(),
 	}
