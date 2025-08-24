@@ -1,5 +1,5 @@
 # ----- Build stage -----
-FROM golang:1.24.5 AS builder
+FROM golang:1.25.0 AS builder
 
 # Set working dir inside build container
 WORKDIR /app
@@ -12,16 +12,16 @@ RUN go mod download
 COPY . .
 
 # Build binary
-RUN go build -o pump-proxy .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o pump-proxy .
 
 # ----- Runtime stage -----
-FROM ubuntu:22.04
+FROM alpine:3.22.1
 
 # Install CA certificates
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ca-certificates
 
 # Create non-root user
-RUN useradd -m appuser
+RUN adduser -D appuser
 
 # Copy binary from build stage
 COPY --from=builder /app/pump-proxy /app/pump-proxy
