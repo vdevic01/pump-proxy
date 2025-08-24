@@ -55,6 +55,7 @@ type SAMLOptions struct {
 	UserIDAttrName    string // Can be any attribute that uniquely identifies the user (e.g. email)
 	CertPath          string // Path to the certificate file
 	KeyPath           string // Path to the key file
+	RedirectURL       string
 }
 
 func NewProxyConfig(configDto *ProxyConfigDto) (*ProxyConfig, error) {
@@ -99,6 +100,7 @@ func NewProxyConfig(configDto *ProxyConfigDto) (*ProxyConfig, error) {
 			UserIDAttrName:    configDto.Saml.UserIDAttrName,
 			CertPath:          configDto.Saml.CertPath,
 			KeyPath:           configDto.Saml.KeyPath,
+			RedirectURL:       configDto.Saml.RedirectURL,
 		}
 	} else {
 		output.Oidc = &OidcOptions{

@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -37,7 +36,7 @@ func NewSAMLHandler(prefix string, config *config.ProxyConfig, saService *saserv
 		log.Fatal("Failed to load IdP metadata:", err)
 	}
 
-	rootURL, _ := url.Parse(fmt.Sprintf("http://localhost:%d", config.Port))
+	rootURL, _ := url.Parse(config.Saml.RedirectURL)
 
 	middleware, err := samlsp.New(samlsp.Options{
 		URL:               *rootURL,

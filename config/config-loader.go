@@ -46,6 +46,7 @@ type SAMLOptionsDto struct {
 	UserIDAttrName    string `cfg:"user_id_attr_name"`
 	CertPath          string `cfg:"cert_path"`
 	KeyPath           string `cfg:"key_path"`
+	RedirectURL       string `cfg:"redirect_url"`
 }
 
 func Load(configFileName string, into interface{}) error {
